@@ -1,0 +1,574 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>필름 계산기 v3.1 (글로벌 플랫폼 연동형)</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<style>
+    /* ADHD/HSP 친화적 저자극 팔레트 */
+    :root {
+        --primary: #10b981; 
+        --bg: #f8fafc;
+        --card: #ffffff;
+        --text: #1e293b;
+        --border: #e2e8f0;
+        --nav-bg: #ffffff;
+        --error: #ef4444;
+        --success: #059669;
+    }
+
+    [data-theme="dark"] {
+        --bg: #0f172a;
+        --card: #1e293b;
+        --text: #f1f5f9;
+        --border: #334155;
+        --nav-bg: #1e293b;
+    }
+
+    body { font-family: -apple-system, sans-serif; background: var(--bg); margin: 0; color: var(--text); transition: background 0.2s, color 0.2s; display: flex; justify-content: center; }
+    .container { width: 100%; max-width: 480px; min-height: 100vh; position: relative; }
+    
+    /* 네비게이션 시스템 */
+    .tab-header { display: flex; background: var(--nav-bg); border-bottom: 1px solid var(--border); position: sticky; top: 0; z-index: 100; box-shadow: 0 2px 4px rgba(0,0,0,0.02); }
+    .tab-btn { flex: 1; padding: 16px 0; border: none; background: transparent; font-size: 13px; font-weight: bold; color: #94a3b8; cursor: pointer; transition: 0.2s; }
+    .tab-btn.active { color: var(--primary); border-bottom: 3px solid var(--primary); }
+
+    .tab-content { display: none; padding: 15px; animation: fadeIn 0.2s ease-in-out; }
+    .tab-content.active { display: block; }
+    @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+    /* 컴포넌트 스타일 */
+    .card { background: var(--card); padding: 18px; border-radius: 12px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); margin-bottom: 15px; border: 1px solid var(--border); }
+    h3 { margin: 0 0 10px 0; font-size: 13px; font-weight: 700; color: var(--primary); display: flex; align-items: center; justify-content: space-between; }
+    
+    input, select { background: var(--card); color: var(--text); border-radius: 5px; border: 1px solid var(--border); padding: 8px; font-size: 12px; box-sizing: border-box; width: 100%; }
+    input:focus, select:focus { outline: 2px solid var(--primary); border-color: var(--primary); }
+    input.error { border-color: var(--error); }
+    
+    input::placeholder { color: #94a3b8; opacity: 0.7; font-style: italic; font-size: 11px; }
+    
+    .area-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .area-block { position: relative; padding: 12px; border: 1px solid var(--border); border-radius: 10px; background: var(--bg); }
+    .remove-btn { position: absolute; top: -6px; right: -6px; background: var(--error); color: white; border: none; width: 22px; height: 22px; border-radius: 50%; font-size: 12px; cursor: pointer; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+    
+    .area-inputs { display: flex; gap: 6px; align-items: center; }
+    .area-inputs input { flex: 1; min-width: 0; }
+    
+    .setting-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; font-size: 14px; gap: 10px; }
+    .setting-row input { width: 120px; text-align: right; }
+
+    .preset-list { display: flex; flex-direction: column; gap: 8px; }
+    .preset-item { padding: 12px; border: 1px solid var(--border); border-radius: 8px; cursor: pointer; display: flex; justify-content: space-between; align-items: center; transition: 0.2s; }
+    .preset-item:hover { background: var(--primary); color: white; border-color: var(--primary); }
+    .preset-item span { font-weight: bold; }
+    .preset-item small { opacity: 0.8; }
+    
+    .btn-main { width: 100%; background: var(--primary); color: white; border: none; padding: 16px; font-size: 15px; font-weight: bold; border-radius: 12px; cursor: pointer; transition: 0.2s; margin-top: 10px; }
+    .btn-main:disabled { opacity: 0.5; cursor: not-allowed; }
+    .btn-sub { background: #64748b; color: white; border: none; padding: 12px; font-size: 13px; border-radius: 8px; cursor: pointer; flex: 1; text-align: center; }
+
+    .doc-preview { padding: 20px; border: 1px solid var(--border); background: #ffffff; font-size: 12px; line-height: 1.6; border-radius: 8px; color: #1e293b; }
+    .history-item { border: 1px solid var(--border); border-radius: 10px; margin-bottom: 10px; background: var(--card); overflow: hidden; }
+    .history-header { padding: 15px; display: flex; justify-content: space-between; align-items: center; cursor: pointer; }
+    .history-body { display: none; padding: 15px; border-top: 1px solid var(--border); background: var(--bg); }
+    .history-body.open { display: block; }
+    
+    .summary-stats { display: flex; justify-content: space-around; margin: 10px 0; padding: 10px; background: var(--bg); border-radius: 8px; }
+    .stat-item { text-align: center; }
+    .stat-value { font-size: 18px; font-weight: bold; color: var(--primary); }
+    
+    .error-message { color: var(--error); font-size: 11px; margin-top: 4px; }
+</style>
+</head>
+<body data-theme="light">
+
+<div class="container">
+    <div class="tab-header">
+        <button class="tab-btn active" onclick="switchTab('calcTab')">계산기</button>
+        <button class="tab-btn" onclick="switchTab('historyTab')">기록 창</button>
+        <button class="tab-btn" onclick="switchTab('configTab')">설정</button>
+    </div>
+
+    <div id="calcTab" class="tab-content active">
+        <div class="card">
+            <h3>현장명</h3>
+            <input type="text" id="projectName" placeholder="예: 강남 아파트/홍대 카페" oninput="saveTempData()">
+        </div>
+
+        <div class="card">
+            <h3>시공 면적 <button onclick="addArea()" style="padding:4px 10px; font-size:11px; background:var(--primary); color:white; border:none; border-radius:6px; cursor:pointer;">+ 추가</button></h3>
+            <div id="areas" class="area-grid"></div>
+        </div>
+
+        <div id="validationError" class="error-message" style="display:none;"></div>
+        
+        <button class="btn-main" onclick="calculate()" id="calculateBtn">물량 산출 및 저장</button>
+
+        <div id="resultSection" style="display:none; margin-top:20px;">
+            <div id="documentSection" class="doc-preview"></div>
+            <div style="display:flex; gap:10px; margin-top:12px;">
+                <button class="btn-sub" style="background:var(--success)" onclick="saveImage('documentSection')">PNG 저장</button>
+                <button class="btn-sub" onclick="shareResult('documentSection')">공유하기</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="historyTab" class="tab-content">
+        <div id="historyList"></div>
+        <button class="btn-main" style="background:transparent; color:var(--error); border:1px solid var(--error); margin-top:30px; font-size:12px;" onclick="clearHistory()">전체 기록 삭제</button>
+    </div>
+
+    <div id="configTab" class="tab-content">
+        <div class="card">
+            <h3>📌 자재 퀵 라이브러리 (글로벌)</h3>
+            <div class="preset-list">
+                <div class="preset-item" onclick="setPreset(50, 1.22, 'metric', '아시아 표준')">
+                    <span>아시아 표준</span><small>50m × 1.22m</small>
+                </div>
+                <div class="preset-item" onclick="setPreset(164, 48, 'imperial', '미국 표준')">
+                    <span>미국 표준</span><small>164ft × 48"</small>
+                </div>
+                <div class="preset-item" onclick="setPreset(50, 1.22, 'metric', '유럽 표준')">
+                    <span>유럽 표준</span><small>50m × 1.22m</small>
+                </div>
+                <div class="preset-item" onclick="setPreset(30, 0.61, 'metric', '가구용 필름')">
+                    <span>가구용 필름</span><small>30m × 0.61m</small>
+                </div>
+            </div>
+            <small style="color:#64748b; margin-top:8px; display:block;">※ 규격 선택 시 입력 단위 모드가 자동 전환됩니다.</small>
+        </div>
+
+        <div class="card">
+            <h3>⚙️ 자재 상세 값 (수동)</h3>
+            <div class="setting-row">
+                <span id="labelRollLength">필름 롤 길이 (m)</span>
+                <input type="number" step="0.1" min="1" max="1000" id="rollLength" value="50" oninput="saveTempData()">
+            </div>
+            <div class="setting-row">
+                <span id="labelRollWidth">필름 폭 (m)</span>
+                <input type="number" step="0.01" min="0.1" max="100" id="rollWidth" value="1.22" oninput="saveTempData()">
+            </div>
+            <div class="setting-row">
+                <span>기본 로스율 (%)</span>
+                <input type="number" step="1" min="0" max="50" id="globalLossRate" value="10" oninput="saveTempData()">
+            </div>
+            <small style="color:#64748b;">※ 현장 시공 면적은 항상 <b>미터(m)</b> 기준으로 입력하세요.</small>
+        </div>
+
+        <div class="card">
+            <h3>🎨 화면 테마</h3>
+            <button class="btn-main" style="background:#64748b;" onclick="toggleTheme()">🌓 다크/라이트 모드 전환</button>
+        </div>
+    </div>
+</div>
+
+<script>
+// 글로벌 단위 상태 관리
+let currentUnit = 'metric'; // 'metric' 또는 'imperial'
+
+function toggleTheme() {
+    const body = document.body;
+    const newTheme = body.getAttribute('data-theme') === 'light' ? 'dark' : 'light';
+    body.setAttribute('data-theme', newTheme);
+    localStorage.setItem('film_theme', newTheme);
+}
+
+window.history.pushState(null, null, window.location.href);
+window.addEventListener('popstate', function() {
+    if(confirm("작업을 중단하시겠습니까? 데이터는 자동 저장됩니다.")) { 
+        window.history.back(); 
+    } else { 
+        window.history.pushState(null, null, window.location.href); 
+    }
+});
+
+let areaCount = 0;
+
+window.onload = () => {
+    const savedTheme = localStorage.getItem('film_theme');
+    if(savedTheme) document.body.setAttribute('data-theme', savedTheme);
+    loadTempData();
+};
+
+function switchTab(tabId) {
+    document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
+    document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+    document.getElementById(tabId).classList.add('active');
+    
+    const btns = document.querySelectorAll('.tab-btn');
+    if(tabId === 'calcTab') btns[0].classList.add('active');
+    if(tabId === 'historyTab') { btns[1].classList.add('active'); renderHistory(); }
+    if(tabId === 'configTab') btns[2].classList.add('active');
+}
+
+// --- 단위 UI 업데이트 ---
+function updateUnitLabels() {
+    const lblLength = document.getElementById('labelRollLength');
+    const lblWidth = document.getElementById('labelRollWidth');
+    
+    if(currentUnit === 'imperial') {
+        lblLength.innerText = '필름 롤 길이 (ft)';
+        lblWidth.innerText = '필름 폭 (inch)';
+    } else {
+        lblLength.innerText = '필름 롤 길이 (m)';
+        lblWidth.innerText = '필름 폭 (m)';
+    }
+}
+
+// --- 프리셋 적용 (단위 모드 포함) ---
+function setPreset(length, width, unitType, name) {
+    currentUnit = unitType;
+    updateUnitLabels();
+    
+    document.getElementById('rollLength').value = length;
+    document.getElementById('rollWidth').value = width;
+
+    document.getElementById('areas').innerHTML = "";
+    areaCount = 0;
+    addArea();
+    addArea();
+
+    saveTempData();
+    alert(`[${name}] 규격 적용 완료.\n자재 상세 입력이 ${unitType === 'imperial' ? 'ft / inch' : 'm / m'} 모드로 전환되었습니다.`);
+}
+
+function createAreaBlock(title = "", w = "", h = "", loss = "") {
+    areaCount++;
+    const id = `block_${Date.now()}_${areaCount}`;
+    return `
+    <div class="area-block" id="${id}">
+        <button class="remove-btn" onclick="removeArea('${id}')">×</button>
+        <input type="text" placeholder="예: 주방가구/신발장/도어" value="${title}" oninput="saveTempData()" style="font-size:12px; font-weight:bold; margin-bottom:8px; border:none; background:transparent; border-bottom:1px solid var(--border);">
+        <div class="area-inputs">
+            <input type="number" step="0.1" min="0.1" placeholder="가로(m)" value="${w}" oninput="saveTempData()" title="가로 길이">
+            <input type="number" step="0.1" min="0.1" placeholder="세로(m)" value="${h}" oninput="saveTempData()" title="세로 길이">
+            <input type="number" step="1" min="0" max="50" placeholder="로스%" value="${loss}" oninput="saveTempData()" title="로스율 (%)">
+        </div>
+    </div>`;
+}
+
+function addArea(title = "", w = "", h = "", loss = "") {
+    document.getElementById('areas').insertAdjacentHTML('beforeend', createAreaBlock(title, w, h, loss));
+    saveTempData();
+}
+
+function removeArea(id) { 
+    document.getElementById(id).remove(); 
+    saveTempData(); 
+}
+
+function validateInputs() {
+    const errors = [];
+    const filmWidth = parseFloat(document.getElementById('rollWidth').value);
+    const rollLength = parseFloat(document.getElementById('rollLength').value);
+    
+    if (filmWidth <= 0 || isNaN(filmWidth)) errors.push("필름 폭을 올바르게 입력해주세요.");
+    if (rollLength <= 0 || isNaN(rollLength)) errors.push("롤 길이를 올바르게 입력해주세요.");
+    
+    let hasValidArea = false;
+    document.querySelectorAll('.area-block').forEach(block => {
+        const inputs = block.querySelectorAll('input');
+        const w = parseFloat(inputs[1]?.value);
+        const h = parseFloat(inputs[2]?.value);
+        
+        if (w > 0 && h > 0) hasValidArea = true;
+    });
+    
+    if (!hasValidArea) errors.push("최소 하나 이상의 시공 면적을 입력해주세요.");
+    
+    const errorDiv = document.getElementById('validationError');
+    if (errors.length > 0) {
+        errorDiv.style.display = 'block';
+        errorDiv.innerHTML = errors.join('<br>');
+        return false;
+    } else {
+        errorDiv.style.display = 'none';
+        return true;
+    }
+}
+
+function saveTempData() {
+    const data = {
+        projectName: document.getElementById('projectName').value,
+        rollLength: document.getElementById('rollLength').value,
+        rollWidth: document.getElementById('rollWidth').value,
+        globalLossRate: document.getElementById('globalLossRate').value,
+        unitType: currentUnit, // 단위 상태도 저장
+        areas: []
+    };
+    
+    document.querySelectorAll('.area-block').forEach(block => {
+        const inputs = block.querySelectorAll('input');
+        data.areas.push({ 
+            title: inputs[0].value, 
+            w: inputs[1].value, 
+            h: inputs[2].value, 
+            loss: inputs[3] ? inputs[3].value : '' 
+        });
+    });
+    
+    localStorage.setItem('film_temp', JSON.stringify(data));
+}
+
+function loadTempData() {
+    const saved = localStorage.getItem('film_temp');
+    document.getElementById('areas').innerHTML = '';
+    
+    if (!saved) { 
+        addArea('주방가구', '2.4', '0.8', '5');
+        addArea('도어', '2.0', '0.9', '8'); 
+        return; 
+    }
+    
+    try {
+        const data = JSON.parse(saved);
+        
+        // 단위 상태 복구
+        currentUnit = data.unitType || 'metric';
+        updateUnitLabels();
+
+        document.getElementById('projectName').value = data.projectName || "";
+        document.getElementById('rollLength').value = data.rollLength || 50;
+        document.getElementById('rollWidth').value = data.rollWidth || 1.22;
+        document.getElementById('globalLossRate').value = data.globalLossRate || 10;
+        
+        if(data.areas && data.areas.length > 0) {
+            data.areas.forEach(a => addArea(a.title, a.w, a.h, a.loss));
+        } else { 
+            addArea('주방가구', '2.4', '0.8', '5');
+            addArea('도어', '2.0', '0.9', '8'); 
+        }
+    } catch (e) {
+        addArea('주방가구', '2.4', '0.8', '5');
+        addArea('도어', '2.0', '0.9', '8');
+    }
+}
+
+// --- 코어 엔진: 산출 로직 ---
+function calculate() {
+    if (!validateInputs()) return;
+
+    const projName = document.getElementById('projectName').value || "미지정 현장";
+    const inputWidth = parseFloat(document.getElementById('rollWidth').value);
+    const inputLength = parseFloat(document.getElementById('rollLength').value);
+    const globalLossRate = parseFloat(document.getElementById('globalLossRate').value) || 10;
+
+    // [핵심] 플랫폼 호환성을 위한 단일 진실 공급원(m) 치환
+    const filmWidthM = currentUnit === 'imperial' ? inputWidth * 0.0254 : inputWidth;
+    const rollLengthM = currentUnit === 'imperial' ? inputLength * 0.3048 : inputLength;
+
+    let totalArea = 0;
+    let totalLengthM = 0;
+    let summary = [];
+
+    document.querySelectorAll('.area-block').forEach(block => {
+        const inputs = block.querySelectorAll('input');
+        const title = inputs[0].value || "시공면";
+        const w = parseFloat(inputs[1].value) || 0;
+        const h = parseFloat(inputs[2].value) || 0;
+        const individualLoss = parseFloat(inputs[3]?.value);
+        
+        const lossRate = !isNaN(individualLoss) && individualLoss >= 0 ? individualLoss : globalLossRate;
+
+        // 면적(m) 입력 기반 계산
+        if (w > 0 && h > 0) {
+            const area = w * h;
+            // 로직 유지 (추후 '폭 수 기반 정밀 계산'으로 고도화 가능)
+            const lengthNeededM = area / filmWidthM;
+            const lengthWithLossM = lengthNeededM * (1 + lossRate / 100);
+            const stripsNeeded = Math.ceil(w / filmWidthM);
+            
+            totalArea += area;
+            totalLengthM += lengthWithLossM;
+
+            summary.push({
+                title,
+                w,
+                h,
+                area,
+                strips: stripsNeeded,
+                lossRate,
+                lengthM: lengthWithLossM
+            });
+        }
+    });
+
+    const rollsNeeded = Math.ceil(totalLengthM / rollLengthM);
+    const now = new Date().toLocaleString('ko-KR');
+
+    // UI 출력용 텍스트 가공
+    const rollSizeText = currentUnit === 'imperial' 
+        ? `${inputLength}ft × ${inputWidth}" (환산: ${rollLengthM.toFixed(2)}m × ${filmWidthM.toFixed(2)}m)`
+        : `${inputLength}m × ${inputWidth}m`;
+
+    const docHtml = `
+        <div style="text-align:center; border-bottom:2px solid #1e293b; padding-bottom:10px; margin-bottom:15px;">
+            <strong style="font-size:14px;">필름 물량 산출서</strong>
+        </div>
+        <div><strong>현장명: ${projName}</strong></div>
+        <div style="font-size:11px; color:#64748b; margin-bottom:15px;">산출일시: ${now}</div>
+        
+        <div class="summary-stats">
+            <div class="stat-item">
+                <div style="font-size:11px; color:#64748b;">총 시공 면적</div>
+                <div class="stat-value">${totalArea.toFixed(2)}m²</div>
+            </div>
+            <div class="stat-item">
+                <div style="font-size:11px; color:#64748b;">자재 규격</div>
+                <div class="stat-value" style="font-size:13px; margin-top:4px;">${rollSizeText}</div>
+            </div>
+        </div>
+
+        <div style="border-top:1px solid #eee; padding-top:10px;">
+            ${summary.map(s => `
+                <div style="margin-bottom:8px;">
+                    • ${s.title}: ${s.w}m × ${s.h}m = ${s.area.toFixed(2)}m²<br>
+                    <span style="color:#64748b; font-size:10px; margin-left:12px;">
+                        → ${s.strips}폭 필요 (로스 ${s.lossRate}%) = ${s.lengthM.toFixed(2)}m
+                    </span>
+                </div>
+            `).join('')}
+        </div>
+
+        <div style="margin-top:15px; background:#f8fafc; padding:15px; border-radius:6px;">
+            <div style="display:flex; justify-content:space-between; margin-bottom:8px;">
+                <span>총 필요 길이:</span>
+                <strong>${totalLengthM.toFixed(2)}m</strong>
+            </div>
+            <div style="display:flex; justify-content:space-between; font-size:16px; margin-top:10px; padding-top:10px; border-top:2px solid #ddd;">
+                <span>필요 롤 수:</span>
+                <strong style="color:${rollsNeeded > 0 ? '#059669' : '#ef4444'}; font-size:18px;">
+                    ${rollsNeeded} 롤
+                </strong>
+            </div>
+        </div>
+    `;
+
+    document.getElementById('documentSection').innerHTML = docHtml;
+    document.getElementById('resultSection').style.display = 'block';
+    document.getElementById('resultSection').scrollIntoView({ behavior: 'smooth' });
+    
+    saveToHistory(projName, now, rollsNeeded, docHtml, totalLengthM, totalArea);
+}
+
+function saveToHistory(projectName, date, finalRoll, docHtml, totalLengthM, totalArea) {
+    const history = JSON.parse(localStorage.getItem('film_history') || '[]');
+    
+    const rawData = {
+        projectName: document.getElementById('projectName').value,
+        rollLength: document.getElementById('rollLength').value,
+        rollWidth: document.getElementById('rollWidth').value,
+        globalLossRate: document.getElementById('globalLossRate').value,
+        unitType: currentUnit,
+        areas: []
+    };
+    
+    document.querySelectorAll('.area-block').forEach(block => {
+        const inputs = block.querySelectorAll('input');
+        rawData.areas.push({ 
+            title: inputs[0].value, 
+            w: inputs[1].value, 
+            h: inputs[2].value, 
+            loss: inputs[3]?.value || '' 
+        });
+    });
+    
+    history.unshift({
+        projectName,
+        date,
+        finalRoll,
+        docHtml,
+        rawData,
+        totalArea: totalArea.toFixed(2)
+    });
+    
+    if (history.length > 20) history.pop();
+    localStorage.setItem('film_history', JSON.stringify(history));
+}
+
+function renderHistory() {
+    const history = JSON.parse(localStorage.getItem('film_history') || '[]');
+    const container = document.getElementById('historyList');
+    
+    if(history.length === 0) { 
+        container.innerHTML = '<div style="text-align:center; padding:50px 0; color:#94a3b8;">저장된 기록이 없습니다.</div>'; 
+        return; 
+    }
+    
+    container.innerHTML = history.map((h, i) => `
+        <div class="history-item">
+            <div class="history-header" onclick="toggleHistory(${i})">
+                <div>
+                    <strong>${h.projectName}</strong>
+                    <br><small style="color:#64748b;">${h.date}</small>
+                </div>
+                <div style="text-align:right;">
+                    <div style="font-weight:bold; color:var(--primary);">${h.finalRoll}롤</div>
+                    <small>${h.totalArea}m²</small>
+                </div>
+            </div>
+            <div class="history-body" id="history_${i}">
+                <div class="doc-preview">${h.docHtml}</div>
+                <div style="display:flex; gap:8px; margin-top:12px;">
+                    <button class="btn-sub" style="background:var(--primary);" onclick="loadToCalc(${i})">불러오기</button>
+                    <button class="btn-sub" style="background:var(--error);" onclick="deleteHistory(${i})">삭제</button>
+                </div>
+            </div>
+        </div>
+    `).join('');
+}
+
+function toggleHistory(index) {
+    const element = document.getElementById(`history_${index}`);
+    element.classList.toggle('open');
+}
+
+function loadToCalc(index) {
+    const history = JSON.parse(localStorage.getItem('film_history') || '[]');
+    localStorage.setItem('film_temp', JSON.stringify(history[index].rawData));
+    loadTempData();
+    switchTab('calcTab');
+    alert("기록을 불러왔습니다.");
+}
+
+function deleteHistory(index) {
+    if(confirm('삭제하시겠습니까?')) {
+        let history = JSON.parse(localStorage.getItem('film_history') || '[]');
+        history.splice(index, 1);
+        localStorage.setItem('film_history', JSON.stringify(history));
+        renderHistory();
+    }
+}
+
+function clearHistory() {
+    if(confirm('모든 기록을 삭제하시겠습니까?')) { 
+        localStorage.removeItem('film_history'); 
+        renderHistory(); 
+    }
+}
+
+function saveImage(id) {
+    const element = document.getElementById(id);
+    if (!element) return;
+    html2canvas(element, { scale: 2, backgroundColor: '#ffffff' }).then(canvas => {
+        const link = document.createElement('a');
+        link.download = `필름산출서_${Date.now()}.png`;
+        link.href = canvas.toDataURL('image/png');
+        link.click();
+    });
+}
+
+function shareResult(id) {
+    const element = document.getElementById(id);
+    if (!element) return;
+    const text = element.innerText;
+    if (navigator.share) { 
+        navigator.share({ title: '필름 물량 산출 결과', text: text }).catch(() => {});
+    } else {
+        navigator.clipboard.writeText(text).then(() => alert('결과가 클립보드에 복사되었습니다.'));
+    }
+}
+</script>
+</body>
+</html>
