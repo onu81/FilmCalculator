@@ -559,15 +559,38 @@ function saveImage(id) {
     });
 }
 
+// 수정된 shareResult 함수 - PNG 이미지 공유
 function shareResult(id) {
     const element = document.getElementById(id);
     if (!element) return;
-    const text = element.innerText;
-    if (navigator.share) { 
-        navigator.share({ title: '필름 물량 산출 결과', text: text }).catch(() => {});
-    } else {
-        navigator.clipboard.writeText(text).then(() => alert('결과가 클립보드에 복사되었습니다.'));
-    }
+    
+    html2canvas(element, { scale: 2, backgroundColor: '#ffffff' }).then(canvas => {
+        canvas.toBlob(blob => {
+            if (!blob) return;
+            
+            const file = new File([blob], `필름산출서_${Date.now()}.png`, { type: 'image/png' });
+            
+            if (navigator.share && navigator.canShare({ files: [file] })) {
+                // 이미지 공유 지원 (카카오톡, 메시지 등)
+                navigator.share({
+                    title: '필름 물량 산출 결과',
+                    files: [file]
+                }).catch(() => {
+                    // 공유 실패 시 다운로드로 대체
+                    const link = document.createElement('a');
+                    link.download = file.name;
+                    link.href = URL.createObjectURL(blob);
+                    link.click();
+                });
+            } else {
+                // 이미지 공유 미지원 브라우저 → 다운로드
+                const link = document.createElement('a');
+                link.download = file.name;
+                link.href = URL.createObjectURL(blob);
+                link.click();
+            }
+        });
+    });
 }
 </script>
 </body>
