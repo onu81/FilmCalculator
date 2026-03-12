@@ -391,24 +391,7 @@ function calculate() {
                 lossRate,
                 lengthM: lengthWithLossM
             });
-        }}
-        
-        btn.innerText = originalText;
-        btn.disabled = false;
-    }).catch(err => {
-        console.error(err);
-        btn.innerText = originalText;
-        btn.disabled = false;
-        alert("이미지 생성 중 오류가 발생했습니다.");
-    });
-} // <--- 여기까지가 shareResult 함수의 끝입니다.
-
-function downloadFallback(url) {
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = '필름산출결과.png';
-    link.click();
-}
+        }
     });
 
     const rollsNeeded = Math.ceil(totalLengthM / rollLengthM);
@@ -576,159 +559,39 @@ function saveImage(id) {
     });
 }
 
-// [최종 연동형] 안드로이드 앱 통로 연결형 공유 함수
+// 수정된 shareResult 함수 - PNG 이미지 공유
 function shareResult(id) {
     const element = document.getElementById(id);
     if (!element) return;
     
-    // 버튼을 잠시 비활성화하여 중복 클릭 방지
-    const btn = event.currentTarget;
-    const originalText = btn.innerText;
-    btn.innerText = "이미지 생성 중...";
-    btn.disabled = true;
-
-    html2canvas(element, { 
-        scale: 2, 
-        backgroundColor: '#ffffff',
-        useCORS: true 
-    }).then(canvas => {
-        const base64Image = canvas.toDataURL('image/png');
-
-        // 1. 안드로이드 앱 인터페이스가 있는지 확인 (앱 접속 시)
-        if (window.Android && typeof window.Android.shareImage === 'function') {
-            window.Android.shareImage(base64Image);
-        } 
-        // 2. 일반 모바일 웹 브라우저 환경인 경우
-        else if (navigator.share) {
-            canvas.toBlob(blob => {
-                const file = new File([blob], 'film_result.png', { type: 'image/png' });
+    html2canvas(element, { scale: 2, backgroundColor: '#ffffff' }).then(canvas => {
+        canvas.toBlob(blob => {
+            if (!blob) return;
+            
+            const file = new File([blob], `필름산출서_${Date.now()}.png`, { type: 'image/png' });
+            
+            if (navigator.share && navigator.canShare({ files: [file] })) {
+                // 이미지 공유 지원 (카카오톡, 메시지 등)
                 navigator.share({
-                    files: [file],
-                    title: '필름 산출 결과'
+                    title: '필름 물량 산출 결과',
+                    files: [file]
                 }).catch(() => {
-                    downloadFallback(base64Image);
+                    // 공유 실패 시 다운로드로 대체
+                    const link = document.createElement('a');
+                    link.download = file.name;
+                    link.href = URL.createObjectURL(blob);
+                    link.click();
                 });
-            });
-        } 
-        // 3. 그 외 PC 환경 등
-        else {
-            downloadFallback(base64Image);
-        }
-        
-        // 버튼 상태 복구
-        btn.innerText = originalText;
-        btn.disabled = false;
-    }).catch(err => {
-        console.error(err);
-        btn.innerText = originalText;
-        btn.disabled = false;
-        alert("이미지 생성 중 오류가 발생했습니다.");
+            } else {
+                // 이미지 공유 미지원 브라우저 → 다운로드
+                const link = document.createElement('a');
+                link.download = file.name;
+                link.href = URL.createObjectURL(blob);
+                link.click();
+            }
+        });
     });
 }
-
-// [최종 연동형] 안드로이드 앱 통로 연결형 공유 함수
-function shareResult(id) {
-    const element = document.getElementById(id);
-    if (!element) return;
-    
-    // 버튼을 잠시 비활성화하여 중복 클릭 방지
-    const btn = event.currentTarget;
-    const originalText = btn.innerText;
-    btn.innerText = "이미지 생성 중...";
-    btn.disabled = true;
-
-    html2canvas(element, { 
-        scale: 2, 
-        backgroundColor: '#ffffff',
-        useCORS: true 
-    }).then(canvas => {
-        const base64Image = canvas.toDataURL('image/png');
-
-        // 1. 안드로이드 앱 인터페이스가 있는지 확인 (앱 접속 시)
-        if (window.Android && typeof window.Android.shareImage === 'function') {
-            window.Android.shareImage(base64Image);
-        } 
-        // 2. 일반 모바일 웹 브라우저 환경인 경우
-        else if (navigator.share) {
-            canvas.toBlob(blob => {
-                const file = new File([blob], 'film_result.png', { type: 'image/png' });
-                navigator.share({
-                    files: [file],
-                    title: '필름 산출 결과'
-                }).catch(() => {
-                    downloadFallback(base64Image);
-                });
-            });
-        } 
-        // 3. 그 외 PC 환경 등
-        else {
-            downloadFallback(base64Image);
-        }
-        
-        // 버튼 상태 복구
-        btn.innerText = originalText;
-        btn.disabled = false;
-    }).catch(err => {
-        console.error(err);
-        btn.innerText = originalText;
-        btn.disabled = false;
-        alert("이미지 생성 중 오류가 발생했습니다.");
-    });
-}
-
-// [최종 연동형] 안드로이드 앱 통로 연결형 공유 함수
-function shareResult(id) {
-    const element = document.getElementById(id);
-    if (!element) return;
-    
-    // 버튼을 잠시 비활성화하여 중복 클릭 방지
-    const btn = event.currentTarget;
-    const originalText = btn.innerText;
-    btn.innerText = "이미지 생성 중...";
-    btn.disabled = true;
-
-    html2canvas(element, { 
-        scale: 2, 
-        backgroundColor: '#ffffff',
-        useCORS: true 
-    }).then(canvas => {
-        const base64Image = canvas.toDataURL('image/png');
-
-        // 1. 안드로이드 앱 인터페이스가 있는지 확인 (앱 접속 시)
-        if (window.Android && typeof window.Android.shareImage === 'function') {
-            window.Android.shareImage(base64Image);
-        } 
-        // 2. 일반 모바일 웹 브라우저 환경인 경우
-        else if (navigator.share) {
-            canvas.toBlob(blob => {
-                const file = new File([blob], 'film_result.png', { type: 'image/png' });
-                navigator.share({
-                    files: [file],
-                    title: '필름 산출 결과'
-                }).catch(() => {
-                    downloadFallback(base64Image);
-                });
-            });
-        } 
-        // 3. 그 외 PC 환경 등
-        else {
-            downloadFallback(base64Image);
-        }
-        
-        // 버튼 상태 복구
-        btn.innerText = originalText;
-        btn.disabled = false;
-    }).catch(err => {
-        console.error(err);
-        btn.innerText = originalText;
-        btn.disabled = false;
-        alert("이미지 생성 중 오류가 발생했습니다.");
-    });
-}
-
-function downloadFallback(url) {
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = '필름산출결과.png';
-    link.click();
-}
+</script>
+</body>
+</html>
