@@ -3,82 +3,96 @@
 <head>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1"/>
-<title>필름 계산기 v3.1 (글로벌 플랫폼 연동형)</title>
+<title>필름 계산기 v3.4 (Onu Standard UI - 와이드형 & 이미지 공유)</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <style>
-    /* ADHD/HSP 친화적 저자극 팔레트 */
+    /* Onu 플랫폼 상용화 표준 디자인 (Cobalt Blue & Cool Gray) */
     :root {
-        --primary: #10b981; 
-        --bg: #f8fafc;
+        --primary: #2563eb; 
+        --primary-hover: #1d4ed8;
+        --bg: #f1f5f9; 
         --card: #ffffff;
-        --text: #1e293b;
-        --border: #e2e8f0;
-        --nav-bg: #ffffff;
+        --text: #0f172a;
+        --text-muted: #64748b;
+        --input-bg: #f8fafc; 
+        --border: #cbd5e1; 
+        --nav-bg: rgba(255, 255, 255, 0.95);
         --error: #ef4444;
-        --success: #059669;
+        --success: #10b981;
+        --shadow-sm: 0 1px 3px rgba(15, 23, 42, 0.05);
+        --shadow-md: 0 4px 12px rgba(15, 23, 42, 0.05);
     }
-
     [data-theme="dark"] {
-        --bg: #0f172a;
+        --bg: #0f172a; 
         --card: #1e293b;
-        --text: #f1f5f9;
+        --text: #f8fafc;
+        --text-muted: #94a3b8;
+        --input-bg: #0f172a;
         --border: #334155;
-        --nav-bg: #1e293b;
+        --nav-bg: rgba(30, 41, 59, 0.95);
+        --shadow-md: 0 8px 24px rgba(0, 0, 0, 0.2);
     }
-
-    body { font-family: -apple-system, sans-serif; background: var(--bg); margin: 0; color: var(--text); transition: background 0.2s, color 0.2s; display: flex; justify-content: center; }
-    .container { width: 100%; max-width: 480px; min-height: 100vh; position: relative; }
+    
+    body { font-family: -apple-system, sans-serif; background: var(--bg); margin: 0; color: var(--text); transition: background 0.3s ease, color 0.3s ease; display: flex; justify-content: center; }
+    .container { width: 100%; max-width: 480px; min-height: 100vh; position: relative; padding-bottom: 30px; }
     
     /* 네비게이션 시스템 */
-    .tab-header { display: flex; background: var(--nav-bg); border-bottom: 1px solid var(--border); position: sticky; top: 0; z-index: 100; box-shadow: 0 2px 4px rgba(0,0,0,0.02); }
-    .tab-btn { flex: 1; padding: 16px 0; border: none; background: transparent; font-size: 13px; font-weight: bold; color: #94a3b8; cursor: pointer; transition: 0.2s; }
-    .tab-btn.active { color: var(--primary); border-bottom: 3px solid var(--primary); }
+    .tab-header { display: flex; background: var(--nav-bg); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); position: sticky; top: 0; z-index: 100; box-shadow: var(--shadow-sm); border-bottom: 1px solid var(--border); }
+    .tab-btn { flex: 1; padding: 16px 0; border: none; background: transparent; font-size: 14px; font-weight: 600; color: var(--text-muted); cursor: pointer; transition: all 0.2s; position: relative; }
+    .tab-btn::after { content: ''; position: absolute; bottom: -1px; left: 50%; transform: translateX(-50%); width: 0; height: 3px; background: var(--primary); transition: width 0.3s ease; border-radius: 3px 3px 0 0; }
+    .tab-btn.active { color: var(--primary); font-weight: 700; }
+    .tab-btn.active::after { width: 100%; }
 
-    .tab-content { display: none; padding: 15px; animation: fadeIn 0.2s ease-in-out; }
+    .tab-content { display: none; padding: 20px 15px; animation: fadeIn 0.2s ease-out; }
     .tab-content.active { display: block; }
-    @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(3px); } to { opacity: 1; transform: translateY(0); } }
 
     /* 컴포넌트 스타일 */
-    .card { background: var(--card); padding: 18px; border-radius: 12px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); margin-bottom: 15px; border: 1px solid var(--border); }
-    h3 { margin: 0 0 10px 0; font-size: 13px; font-weight: 700; color: var(--primary); display: flex; align-items: center; justify-content: space-between; }
+    .card { background: var(--card); padding: 20px; border-radius: 12px; margin-bottom: 16px; box-shadow: var(--shadow-sm); border: 1px solid var(--border); }
+    h3 { margin: 0 0 14px 0; font-size: 14px; font-weight: 700; color: var(--text); display: flex; align-items: center; justify-content: space-between; letter-spacing: -0.3px; }
     
-    input, select { background: var(--card); color: var(--text); border-radius: 5px; border: 1px solid var(--border); padding: 8px; font-size: 12px; box-sizing: border-box; width: 100%; }
-    input:focus, select:focus { outline: 2px solid var(--primary); border-color: var(--primary); }
+    /* 입력창 및 안내문구 시인성 강화 */
+    input, select { background: var(--input-bg); color: var(--text); border: 1px solid var(--border); border-radius: 8px; padding: 14px; font-size: 14px; width: 100%; box-sizing: border-box; transition: all 0.2s ease; }
+    input::placeholder { color: #64748b; font-weight: 500; } 
+    [data-theme="dark"] input::placeholder { color: #94a3b8; }
+    input:focus, select:focus { outline: none; background: var(--card); border-color: var(--primary); box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15); }
     input.error { border-color: var(--error); }
     
-    input::placeholder { color: #94a3b8; opacity: 0.7; font-style: italic; font-size: 11px; }
+    /* 면적 입력 블록: 1열 와이드 배치 */
+    .area-grid { display: grid; grid-template-columns: 1fr; gap: 14px; } 
+    .area-block { position: relative; padding: 16px; border: 1px solid var(--border); border-radius: 10px; background: var(--input-bg); transition: border-color 0.2s; }
+    .area-block:hover { border-color: #94a3b8; }
+    .remove-btn { position: absolute; top: -10px; right: -10px; background: var(--error); color: white; border: none; width: 28px; height: 28px; border-radius: 50%; font-size: 14px; font-weight: bold; cursor: pointer; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 6px rgba(239, 68, 68, 0.3); transition: transform 0.2s; z-index: 10; }
+    .remove-btn:hover { transform: scale(1.1); }
     
-    .area-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-    .area-block { position: relative; padding: 12px; border: 1px solid var(--border); border-radius: 10px; background: var(--bg); }
-    .remove-btn { position: absolute; top: -6px; right: -6px; background: var(--error); color: white; border: none; width: 22px; height: 22px; border-radius: 50%; font-size: 12px; cursor: pointer; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+    .area-inputs { display: flex; gap: 10px; margin-top: 8px; }
+    .area-inputs input { flex: 1; min-width: 0; text-align: center; } 
     
-    .area-inputs { display: flex; gap: 6px; align-items: center; }
-    .area-inputs input { flex: 1; min-width: 0; }
-    
-    .setting-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; font-size: 14px; gap: 10px; }
+    .setting-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; font-size: 13px; font-weight: 500; gap: 10px; }
     .setting-row input { width: 120px; text-align: right; }
 
-    .preset-list { display: flex; flex-direction: column; gap: 8px; }
-    .preset-item { padding: 12px; border: 1px solid var(--border); border-radius: 8px; cursor: pointer; display: flex; justify-content: space-between; align-items: center; transition: 0.2s; }
-    .preset-item:hover { background: var(--primary); color: white; border-color: var(--primary); }
-    .preset-item span { font-weight: bold; }
-    .preset-item small { opacity: 0.8; }
+    .preset-list { display: grid; grid-template-columns: 1fr; gap: 8px; }
+    .preset-item { padding: 14px; border: 1px solid var(--border); border-radius: 10px; cursor: pointer; display: flex; justify-content: space-between; align-items: center; transition: all 0.2s; background: var(--card); }
+    .preset-item:hover { background: var(--input-bg); border-color: var(--primary); color: var(--primary); }
+    .preset-item span { font-weight: 600; }
+    .preset-item small { color: var(--text-muted); }
     
-    .btn-main { width: 100%; background: var(--primary); color: white; border: none; padding: 16px; font-size: 15px; font-weight: bold; border-radius: 12px; cursor: pointer; transition: 0.2s; margin-top: 10px; }
-    .btn-main:disabled { opacity: 0.5; cursor: not-allowed; }
-    .btn-sub { background: #64748b; color: white; border: none; padding: 12px; font-size: 13px; border-radius: 8px; cursor: pointer; flex: 1; text-align: center; }
+    .btn-main { width: 100%; background: var(--primary); color: white; border: none; padding: 16px; font-size: 15px; font-weight: 700; border-radius: 10px; cursor: pointer; transition: all 0.2s; margin-top: 12px; box-shadow: 0 4px 10px rgba(37, 99, 235, 0.2); letter-spacing: -0.3px; }
+    .btn-main:hover { background: var(--primary-hover); transform: translateY(-1px); }
+    .btn-main:active { transform: translateY(1px); }
+    .btn-sub { background: var(--card); color: var(--text); border: 1px solid var(--border); padding: 12px; font-size: 13px; font-weight: 600; border-radius: 8px; cursor: pointer; flex: 1; text-align: center; transition: all 0.2s; box-shadow: var(--shadow-sm); }
+    .btn-sub:hover { background: var(--bg); }
 
-    .doc-preview { padding: 20px; border: 1px solid var(--border); background: #ffffff; font-size: 12px; line-height: 1.6; border-radius: 8px; color: #1e293b; }
-    .history-item { border: 1px solid var(--border); border-radius: 10px; margin-bottom: 10px; background: var(--card); overflow: hidden; }
-    .history-header { padding: 15px; display: flex; justify-content: space-between; align-items: center; cursor: pointer; }
-    .history-body { display: none; padding: 15px; border-top: 1px solid var(--border); background: var(--bg); }
-    .history-body.open { display: block; }
+    .doc-preview { background: var(--card); padding: 20px; border-radius: 10px; font-size: 13px; color: var(--text); line-height: 1.6; border: 1px solid var(--border); }
+    .history-item { border: 1px solid var(--border); border-radius: 12px; margin-bottom: 14px; background: var(--card); overflow: hidden; box-shadow: var(--shadow-sm); }
+    .history-header { padding: 18px; display: flex; justify-content: space-between; align-items: center; }
     
-    .summary-stats { display: flex; justify-content: space-around; margin: 10px 0; padding: 10px; background: var(--bg); border-radius: 8px; }
+    .summary-stats { display: flex; justify-content: space-around; padding: 16px; background: var(--primary); color: white; border-radius: 10px; margin: 16px 0; box-shadow: 0 4px 12px rgba(37, 99, 235, 0.2); }
     .stat-item { text-align: center; }
-    .stat-value { font-size: 18px; font-weight: bold; color: var(--primary); }
+    .stat-item div:first-child { font-size: 11px; opacity: 0.85; margin-bottom: 4px; }
+    .stat-value { font-size: 20px; font-weight: 800; }
     
-    .error-message { color: var(--error); font-size: 11px; margin-top: 4px; }
+    .error-message { color: var(--error); font-size: 12px; margin-top: 8px; display: none; text-align: center; font-weight: 500; }
 </style>
 </head>
 <body data-theme="light">
@@ -86,42 +100,42 @@
 <div class="container">
     <div class="tab-header">
         <button class="tab-btn active" onclick="switchTab('calcTab')">계산기</button>
-        <button class="tab-btn" onclick="switchTab('historyTab')">기록 창</button>
+        <button class="tab-btn" onclick="switchTab('historyTab')">기록</button>
         <button class="tab-btn" onclick="switchTab('configTab')">설정</button>
     </div>
 
     <div id="calcTab" class="tab-content active">
         <div class="card">
-            <h3>현장명</h3>
+            <h3 style="color: var(--text);">프로젝트 현장명</h3>
             <input type="text" id="projectName" placeholder="예: 강남 아파트/홍대 카페" oninput="saveTempData()">
         </div>
 
         <div class="card">
-            <h3>시공 면적 <button onclick="addArea()" style="padding:4px 10px; font-size:11px; background:var(--primary); color:white; border:none; border-radius:6px; cursor:pointer;">+ 추가</button></h3>
+            <h3 style="color: var(--text);">시공 면적 <button onclick="addArea()" style="padding:6px 12px; background:var(--text); color:white; border:none; border-radius:6px; cursor:pointer; font-size:12px; font-weight:600;">+ 면적 추가</button></h3>
             <div id="areas" class="area-grid"></div>
         </div>
 
         <div id="validationError" class="error-message" style="display:none;"></div>
         
-        <button class="btn-main" onclick="calculate()" id="calculateBtn">물량 산출 및 저장</button>
+        <button class="btn-main" onclick="calculate()" id="calculateBtn">물량 산출 및 기록 저장</button>
 
-        <div id="resultSection" style="display:none; margin-top:20px;">
+        <div id="resultSection" style="display:none; margin-top:24px;">
             <div id="documentSection" class="doc-preview"></div>
             <div style="display:flex; gap:10px; margin-top:12px;">
-                <button class="btn-sub" style="background:var(--success)" onclick="saveImage('documentSection')">PNG 저장</button>
-                <button class="btn-sub" onclick="shareResult('documentSection')">공유하기</button>
+                <button class="btn-sub" style="background:var(--success); color:white; border:none;" onclick="saveImage('documentSection')">PNG 다운로드</button>
+                <button class="btn-sub" onclick="shareResult('documentSection')">결과 공유하기</button>
             </div>
         </div>
     </div>
 
     <div id="historyTab" class="tab-content">
         <div id="historyList"></div>
-        <button class="btn-main" style="background:transparent; color:var(--error); border:1px solid var(--error); margin-top:30px; font-size:12px;" onclick="clearHistory()">전체 기록 삭제</button>
+        <button class="btn-sub" style="width:100%; color:var(--error); border-color:var(--error); background:transparent; margin-top:20px; box-shadow:none;" onclick="clearHistory()">모든 기록 삭제</button>
     </div>
 
     <div id="configTab" class="tab-content">
         <div class="card">
-            <h3>📌 자재 퀵 라이브러리 (글로벌)</h3>
+            <h3>🌍 자재 퀵 라이브러리 (글로벌)</h3>
             <div class="preset-list">
                 <div class="preset-item" onclick="setPreset(50, 1.22, 'metric', '아시아 표준')">
                     <span>아시아 표준</span><small>50m × 1.22m</small>
@@ -136,11 +150,11 @@
                     <span>가구용 필름</span><small>30m × 0.61m</small>
                 </div>
             </div>
-            <small style="color:#64748b; margin-top:8px; display:block;">※ 규격 선택 시 입력 단위 모드가 자동 전환됩니다.</small>
+            <small style="color:var(--text-muted); margin-top:8px; display:block; font-size:11px;">※ 규격 선택 시 입력 단위 모드가 자동 전환됩니다.</small>
         </div>
 
         <div class="card">
-            <h3>⚙️ 자재 상세 값 (수동)</h3>
+            <h3>📦 자재 기본 설정 (수동)</h3>
             <div class="setting-row">
                 <span id="labelRollLength">필름 롤 길이 (m)</span>
                 <input type="number" step="0.1" min="1" max="1000" id="rollLength" value="50" oninput="saveTempData()">
@@ -153,25 +167,31 @@
                 <span>기본 로스율 (%)</span>
                 <input type="number" step="1" min="0" max="50" id="globalLossRate" value="10" oninput="saveTempData()">
             </div>
-            <small style="color:#64748b;">※ 현장 시공 면적은 항상 <b>미터(m)</b> 기준으로 입력하세요.</small>
+            <small style="color:var(--text-muted); font-size:11px;">※ 현장 시공 면적은 항상 <b>미터(m)</b> 기준으로 입력하세요.</small>
         </div>
 
         <div class="card">
-            <h3>🎨 화면 테마</h3>
-            <button class="btn-main" style="background:#64748b;" onclick="toggleTheme()">🌓 다크/라이트 모드 전환</button>
+            <h3>🎨 플랫폼 디스플레이</h3>
+            <button class="btn-sub" style="width:100%; background:var(--text); color:var(--card);" onclick="toggleTheme()">🌓 다크/라이트 모드 전환</button>
         </div>
     </div>
 </div>
 
 <script>
-// 글로벌 단위 상태 관리
-let currentUnit = 'metric'; // 'metric' 또는 'imperial'
+let currentUnit = 'metric'; 
+let areaCount = 0;
+
+window.onload = () => {
+    const savedTheme = localStorage.getItem('onu_platform_theme');
+    if(savedTheme) document.body.setAttribute('data-theme', savedTheme);
+    loadTempData();
+};
 
 function toggleTheme() {
     const body = document.body;
     const newTheme = body.getAttribute('data-theme') === 'light' ? 'dark' : 'light';
     body.setAttribute('data-theme', newTheme);
-    localStorage.setItem('film_theme', newTheme);
+    localStorage.setItem('onu_platform_theme', newTheme);
 }
 
 window.history.pushState(null, null, window.location.href);
@@ -183,29 +203,18 @@ window.addEventListener('popstate', function() {
     }
 });
 
-let areaCount = 0;
-
-window.onload = () => {
-    const savedTheme = localStorage.getItem('film_theme');
-    if(savedTheme) document.body.setAttribute('data-theme', savedTheme);
-    loadTempData();
-};
-
 function switchTab(tabId) {
     document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
     document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
     document.getElementById(tabId).classList.add('active');
-    
-    const btns = document.querySelectorAll('.tab-btn');
-    if(tabId === 'calcTab') btns[0].classList.add('active');
-    if(tabId === 'historyTab') { btns[1].classList.add('active'); renderHistory(); }
-    if(tabId === 'configTab') btns[2].classList.add('active');
+    document.querySelector(`button[onclick*="${tabId}"]`).classList.add('active');
+    if(tabId === 'historyTab') renderHistory();
 }
 
-// --- 단위 UI 업데이트 ---
 function updateUnitLabels() {
     const lblLength = document.getElementById('labelRollLength');
     const lblWidth = document.getElementById('labelRollWidth');
+    const unitR = currentUnit === 'imperial' ? 'ft' : 'm';
     
     if(currentUnit === 'imperial') {
         lblLength.innerText = '필름 롤 길이 (ft)';
@@ -214,9 +223,16 @@ function updateUnitLabels() {
         lblLength.innerText = '필름 롤 길이 (m)';
         lblWidth.innerText = '필름 폭 (m)';
     }
+
+    document.querySelectorAll('.area-block').forEach(b => {
+        const ins = b.querySelectorAll('input');
+        if(ins.length >= 4) {
+            ins[1].placeholder = `가로(${unitR})`;
+            ins[2].placeholder = `세로(${unitR})`;
+        }
+    });
 }
 
-// --- 프리셋 적용 (단위 모드 포함) ---
 function setPreset(length, width, unitType, name) {
     currentUnit = unitType;
     updateUnitLabels();
@@ -236,20 +252,22 @@ function setPreset(length, width, unitType, name) {
 function createAreaBlock(title = "", w = "", h = "", loss = "") {
     areaCount++;
     const id = `block_${Date.now()}_${areaCount}`;
+    const unitR = currentUnit === 'imperial' ? 'ft' : 'm';
     return `
     <div class="area-block" id="${id}">
         <button class="remove-btn" onclick="removeArea('${id}')">×</button>
-        <input type="text" placeholder="예: 주방가구/신발장/도어" value="${title}" oninput="saveTempData()" style="font-size:12px; font-weight:bold; margin-bottom:8px; border:none; background:transparent; border-bottom:1px solid var(--border);">
+        <input type="text" placeholder="공간명 (예: 주방 하부장)" value="${title}" oninput="saveTempData()" style="font-size:14px; font-weight:700; border:none; border-bottom:1px solid var(--border); background:transparent; margin-bottom:14px; padding:6px 4px; border-radius:0;">
         <div class="area-inputs">
-            <input type="number" step="0.1" min="0.1" placeholder="가로(m)" value="${w}" oninput="saveTempData()" title="가로 길이">
-            <input type="number" step="0.1" min="0.1" placeholder="세로(m)" value="${h}" oninput="saveTempData()" title="세로 길이">
-            <input type="number" step="1" min="0" max="50" placeholder="로스%" value="${loss}" oninput="saveTempData()" title="로스율 (%)">
+            <input type="number" step="0.1" min="0.1" placeholder="가로(${unitR})" value="${w}" oninput="saveTempData()" title="가로 길이">
+            <input type="number" step="0.1" min="0.1" placeholder="세로(${unitR})" value="${h}" oninput="saveTempData()" title="세로 길이">
+            <input type="number" step="1" min="0" max="50" placeholder="로스(%)" value="${loss}" oninput="saveTempData()" title="로스율 (%)">
         </div>
     </div>`;
 }
 
 function addArea(title = "", w = "", h = "", loss = "") {
     document.getElementById('areas').insertAdjacentHTML('beforeend', createAreaBlock(title, w, h, loss));
+    updateUnitLabels();
     saveTempData();
 }
 
@@ -271,7 +289,6 @@ function validateInputs() {
         const inputs = block.querySelectorAll('input');
         const w = parseFloat(inputs[1]?.value);
         const h = parseFloat(inputs[2]?.value);
-        
         if (w > 0 && h > 0) hasValidArea = true;
     });
     
@@ -294,7 +311,7 @@ function saveTempData() {
         rollLength: document.getElementById('rollLength').value,
         rollWidth: document.getElementById('rollWidth').value,
         globalLossRate: document.getElementById('globalLossRate').value,
-        unitType: currentUnit, // 단위 상태도 저장
+        unitType: currentUnit,
         areas: []
     };
     
@@ -324,7 +341,6 @@ function loadTempData() {
     try {
         const data = JSON.parse(saved);
         
-        // 단위 상태 복구
         currentUnit = data.unitType || 'metric';
         updateUnitLabels();
 
@@ -345,7 +361,6 @@ function loadTempData() {
     }
 }
 
-// --- 코어 엔진: 산출 로직 ---
 function calculate() {
     if (!validateInputs()) return;
 
@@ -354,7 +369,6 @@ function calculate() {
     const inputLength = parseFloat(document.getElementById('rollLength').value);
     const globalLossRate = parseFloat(document.getElementById('globalLossRate').value) || 10;
 
-    // [핵심] 플랫폼 호환성을 위한 단일 진실 공급원(m) 치환
     const filmWidthM = currentUnit === 'imperial' ? inputWidth * 0.0254 : inputWidth;
     const rollLengthM = currentUnit === 'imperial' ? inputLength * 0.3048 : inputLength;
 
@@ -371,10 +385,8 @@ function calculate() {
         
         const lossRate = !isNaN(individualLoss) && individualLoss >= 0 ? individualLoss : globalLossRate;
 
-        // 면적(m) 입력 기반 계산
         if (w > 0 && h > 0) {
             const area = w * h;
-            // 로직 유지 (추후 '폭 수 기반 정밀 계산'으로 고도화 가능)
             const lengthNeededM = area / filmWidthM;
             const lengthWithLossM = lengthNeededM * (1 + lossRate / 100);
             const stripsNeeded = Math.ceil(w / filmWidthM);
@@ -382,66 +394,57 @@ function calculate() {
             totalArea += area;
             totalLengthM += lengthWithLossM;
 
-            summary.push({
-                title,
-                w,
-                h,
-                area,
-                strips: stripsNeeded,
-                lossRate,
-                lengthM: lengthWithLossM
-            });
+            summary.push({ title, w, h, area, strips: stripsNeeded, lossRate, lengthM: lengthWithLossM });
         }
     });
 
     const rollsNeeded = Math.ceil(totalLengthM / rollLengthM);
     const now = new Date().toLocaleString('ko-KR');
 
-    // UI 출력용 텍스트 가공
     const rollSizeText = currentUnit === 'imperial' 
         ? `${inputLength}ft × ${inputWidth}" (환산: ${rollLengthM.toFixed(2)}m × ${filmWidthM.toFixed(2)}m)`
         : `${inputLength}m × ${inputWidth}m`;
 
     const docHtml = `
-        <div style="text-align:center; border-bottom:2px solid #1e293b; padding-bottom:10px; margin-bottom:15px;">
-            <strong style="font-size:14px;">필름 물량 산출서</strong>
+        <div style="text-align:center; border-bottom:2px solid var(--border); padding-bottom:12px; margin-bottom:16px;">
+            <strong style="font-size:15px; color:var(--text);">필름 물량 산출서</strong>
         </div>
-        <div><strong>현장명: ${projName}</strong></div>
-        <div style="font-size:11px; color:#64748b; margin-bottom:15px;">산출일시: ${now}</div>
+        <div style="margin-bottom:12px; font-size:14px;"><strong>현장명: ${projName}</strong></div>
         
         <div class="summary-stats">
             <div class="stat-item">
-                <div style="font-size:11px; color:#64748b;">총 시공 면적</div>
+                <div>총 시공 면적</div>
                 <div class="stat-value">${totalArea.toFixed(2)}m²</div>
             </div>
             <div class="stat-item">
-                <div style="font-size:11px; color:#64748b;">자재 규격</div>
+                <div>자재 규격</div>
                 <div class="stat-value" style="font-size:13px; margin-top:4px;">${rollSizeText}</div>
             </div>
         </div>
 
-        <div style="border-top:1px solid #eee; padding-top:10px;">
+        <div style="border-top:1px solid var(--border); padding-top:16px;">
             ${summary.map(s => `
-                <div style="margin-bottom:8px;">
-                    • ${s.title}: ${s.w}m × ${s.h}m = ${s.area.toFixed(2)}m²<br>
-                    <span style="color:#64748b; font-size:10px; margin-left:12px;">
-                        → ${s.strips}폭 필요 (로스 ${s.lossRate}%) = ${s.lengthM.toFixed(2)}m
-                    </span>
+                <div style="margin-bottom:8px; display:flex; justify-content:space-between; align-items:center;">
+                    <span>• <strong>${s.title}</strong></span>
+                    <span><strong style="color:var(--primary); font-size:14px;">${s.strips}폭 필요</strong> <span style="color:var(--text-muted); font-size:11px;">(로스 ${s.lossRate}%) = ${s.lengthM.toFixed(2)}m</span></span>
                 </div>
             `).join('')}
         </div>
 
-        <div style="margin-top:15px; background:#f8fafc; padding:15px; border-radius:6px;">
-            <div style="display:flex; justify-content:space-between; margin-bottom:8px;">
+        <div style="margin-top:20px; background:var(--input-bg); padding:16px; border-radius:10px; border:1px solid var(--border);">
+            <div style="display:flex; justify-content:space-between; margin-bottom:8px; color:var(--text-muted); font-size:13px;">
                 <span>총 필요 길이:</span>
                 <strong>${totalLengthM.toFixed(2)}m</strong>
             </div>
-            <div style="display:flex; justify-content:space-between; font-size:16px; margin-top:10px; padding-top:10px; border-top:2px solid #ddd;">
-                <span>필요 롤 수:</span>
-                <strong style="color:${rollsNeeded > 0 ? '#059669' : '#ef4444'}; font-size:18px;">
+            <div style="display:flex; justify-content:space-between; font-size:16px; margin-top:10px; padding-top:10px; border-top:1px dashed var(--border); align-items:center;">
+                <span style="font-weight:700;">최종 필요 롤 수:</span>
+                <strong style="color:${rollsNeeded > 0 ? 'var(--primary)' : 'var(--error)'}; font-size:20px;">
                     ${rollsNeeded} 롤
                 </strong>
             </div>
+        </div>
+        <div style="margin-top:16px; font-size:11px; color:var(--text-muted); text-align:right;">
+            산출일시: ${now} | 모드: ${currentUnit.toUpperCase()}
         </div>
     `;
 
@@ -474,15 +477,7 @@ function saveToHistory(projectName, date, finalRoll, docHtml, totalLengthM, tota
         });
     });
     
-    history.unshift({
-        projectName,
-        date,
-        finalRoll,
-        docHtml,
-        rawData,
-        totalArea: totalArea.toFixed(2)
-    });
-    
+    history.unshift({ projectName, date, finalRoll, docHtml, rawData, totalArea: totalArea.toFixed(2) });
     if (history.length > 20) history.pop();
     localStorage.setItem('film_history', JSON.stringify(history));
 }
@@ -492,36 +487,44 @@ function renderHistory() {
     const container = document.getElementById('historyList');
     
     if(history.length === 0) { 
-        container.innerHTML = '<div style="text-align:center; padding:50px 0; color:#94a3b8;">저장된 기록이 없습니다.</div>'; 
+        container.innerHTML = '<div style="text-align:center; padding:50px 0; color:var(--text-muted);">저장된 기록이 없습니다.</div>'; 
         return; 
     }
     
     container.innerHTML = history.map((h, i) => `
         <div class="history-item">
-            <div class="history-header" onclick="toggleHistory(${i})">
+            <div class="history-header">
                 <div>
-                    <strong>${h.projectName}</strong>
-                    <br><small style="color:#64748b;">${h.date}</small>
+                    <strong style="font-size:15px; color:var(--text);">${h.projectName}</strong>
+                    <br><small style="color:var(--text-muted);">${h.date} | ${h.totalArea}m²</small>
                 </div>
                 <div style="text-align:right;">
-                    <div style="font-weight:bold; color:var(--primary);">${h.finalRoll}롤</div>
-                    <small>${h.totalArea}m²</small>
+                    <span style="color:var(--primary); font-weight:800; font-size:18px;">${h.finalRoll} 롤</span>
                 </div>
             </div>
-            <div class="history-body" id="history_${i}">
-                <div class="doc-preview">${h.docHtml}</div>
-                <div style="display:flex; gap:8px; margin-top:12px;">
-                    <button class="btn-sub" style="background:var(--primary);" onclick="loadToCalc(${i})">불러오기</button>
-                    <button class="btn-sub" style="background:var(--error);" onclick="deleteHistory(${i})">삭제</button>
+            <button class="btn-sub" id="toggleBtn_${i}" style="width:calc(100% - 32px); margin:0 16px 16px 16px; box-shadow:none; background:var(--bg);" onclick="toggleHistoryDetail(${i}, this)">상세보기</button>
+            <div class="history-body" id="history_${i}" style="display:none; padding:0 16px 16px 16px;">
+                <div class="doc-preview" style="padding:16px; margin-bottom:12px;">${h.docHtml}</div>
+                <div style="display:flex; gap:8px;">
+                    <button class="btn-sub" style="background:var(--primary); color:white; border:none;" onclick="loadToCalc(${i})">불러오기</button>
+                    <button class="btn-sub" style="color:var(--error); border-color:var(--error); background:transparent;" onclick="deleteHistory(${i})">삭제</button>
                 </div>
             </div>
         </div>
     `).join('');
 }
 
-function toggleHistory(index) {
+function toggleHistoryDetail(index, btn) {
     const element = document.getElementById(`history_${index}`);
-    element.classList.toggle('open');
+    if(element.style.display === 'none') {
+        element.style.display = 'block';
+        btn.innerText = '접기';
+        btn.style.background = 'var(--border)';
+    } else {
+        element.style.display = 'none';
+        btn.innerText = '상세보기';
+        btn.style.background = 'var(--bg)';
+    }
 }
 
 function loadToCalc(index) {
@@ -551,7 +554,7 @@ function clearHistory() {
 function saveImage(id) {
     const element = document.getElementById(id);
     if (!element) return;
-    html2canvas(element, { scale: 2, backgroundColor: '#ffffff' }).then(canvas => {
+    html2canvas(element, { scale: 2, backgroundColor: document.body.getAttribute('data-theme') === 'dark' ? '#1e293b' : '#ffffff' }).then(canvas => {
         const link = document.createElement('a');
         link.download = `필름산출서_${Date.now()}.png`;
         link.href = canvas.toDataURL('image/png');
@@ -559,35 +562,17 @@ function saveImage(id) {
     });
 }
 
-// 수정된 shareResult 함수 - PNG 이미지 공유
+// 완벽하게 복구된 이미지 공유 로직
 function shareResult(id) {
-    const element = document.getElementById(id);
-    if (!element) return;
-    
-    html2canvas(element, { scale: 2, backgroundColor: '#ffffff' }).then(canvas => {
-        canvas.toBlob(blob => {
-            if (!blob) return;
-            
-            const file = new File([blob], `필름산출서_${Date.now()}.png`, { type: 'image/png' });
-            
-            if (navigator.share && navigator.canShare({ files: [file] })) {
-                // 이미지 공유 지원 (카카오톡, 메시지 등)
-                navigator.share({
-                    title: '필름 물량 산출 결과',
-                    files: [file]
-                }).catch(() => {
-                    // 공유 실패 시 다운로드로 대체
-                    const link = document.createElement('a');
-                    link.download = file.name;
-                    link.href = URL.createObjectURL(blob);
-                    link.click();
-                });
+    const el = document.getElementById(id);
+    if(!el) return;
+    html2canvas(el, {scale:2, backgroundColor:document.body.getAttribute('data-theme') === 'dark' ? '#1e293b' : '#ffffff'}).then(c => {
+        c.toBlob(blob => {
+            const f = new File([blob], 'result.png', {type:'image/png'});
+            if(navigator.share && navigator.canShare({files:[f]})) {
+                navigator.share({files:[f], title:'필름 물량 산출서'});
             } else {
-                // 이미지 공유 미지원 브라우저 → 다운로드
-                const link = document.createElement('a');
-                link.download = file.name;
-                link.href = URL.createObjectURL(blob);
-                link.click();
+                alert('공유 기능을 지원하지 않는 브라우저입니다. 이미지를 저장해주세요.');
             }
         });
     });
