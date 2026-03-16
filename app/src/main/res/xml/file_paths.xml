@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<paths>
+    <!-- 앱 내부 캐시의 images 폴더를 shared_images라는 이름으로 외부에 노출 -->
+    <cache-path name="shared_images" path="images/"/>
+</paths>
