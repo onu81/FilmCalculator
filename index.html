@@ -3,7 +3,7 @@
 <head>
     <meta charset="utf-8"/>
     <meta name="viewport" content="width=device-width, initial-scale=1"/>
-    <title>필름 계산기 v3.5 (Onu Standard UI - 와이드형 & 이미지 공유)</title>
+    <title>인테리어필름계산기 v3.5 (Onu Standard UI)</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <style>
         /* Onu 플랫폼 상용화 표준 디자인 (Cobalt Blue & Cool Gray) */
@@ -194,6 +194,7 @@
         localStorage.setItem('onu_platform_theme', newTheme);
     }
 
+    // 뒤로가기 제어
     window.history.pushState(null, null, window.location.href);
     window.addEventListener('popstate', function() {
         if(confirm("작업을 중단하시겠습니까? 데이터는 자동 저장됩니다.")) {
@@ -272,7 +273,8 @@
     }
 
     function removeArea(id) {
-        document.getElementById(id).remove();
+        const el = document.getElementById(id);
+        if(el) el.remove();
         saveTempData();
     }
 
@@ -407,7 +409,7 @@
 
         const docHtml = `
             <div style="text-align:center; border-bottom:2px solid var(--border); padding-bottom:12px; margin-bottom:16px;">
-                <strong style="font-size:15px; color:var(--text);">필름 물량 산출서</strong>
+                <strong style="font-size:15px; color:var(--text);">인테리어필름 물량 산출서</strong>
             </div>
             <div style="margin-bottom:12px; font-size:14px;"><strong>현장명: ${projName}</strong></div>
 
@@ -551,7 +553,7 @@
         }
     }
 
-    // [수정본] 앱 내부 저장 기능
+    // 앱 내부 저장 기능
     function saveImage(id) {
         const element = document.getElementById(id);
         if (!element) return;
@@ -564,14 +566,14 @@
             } else {
                 // 웹 브라우저용 백업 로직
                 const link = document.createElement('a');
-                link.download = `필름산출서_${Date.now()}.png`;
+                link.download = `인테리어필름산출서_${Date.now()}.png`;
                 link.href = base64;
                 link.click();
             }
         });
     }
 
-    // [수정본] 앱 내부 공유 기능 (카카오톡 연동 등)
+    // 앱 내부 공유 기능
     function shareResult(id) {
         const el = document.getElementById(id);
         if(!el) return;
@@ -582,7 +584,7 @@
             if (window.Android && window.Android.shareToKakao) {
                 window.Android.shareToKakao(base64);
             } else {
-                alert('앱 시스템과 연결되지 않았습니다. APK 빌드 설정을 확인하세요.');
+                alert('앱 시스템과 연결되지 않았습니다.');
             }
         });
     }
