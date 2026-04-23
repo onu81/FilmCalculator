@@ -5,7 +5,7 @@ plugins {
 
 android {
     namespace = "com.onu81.interiorfilmcalc"
-    compileSdk = 35
+    compileSdk = 36
 
     defaultConfig {
         applicationId = "com.onu81.interiorfilmcalc"
